@@ -1,0 +1,1 @@
+export const DbSequelize = async (): Promise<void> => {}
