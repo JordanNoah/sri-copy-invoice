@@ -4,6 +4,7 @@ import {cors} from "hono/cors"
 import {serve} from "@hono/node-server"
 import { DbSequelize } from '@/infrastructure/database/init'
 import AppRoutes from './routes'
+import { sriAutomatedLogin } from '@/infrastructure/service/sri-automated.service'
 
 export class Server {
   public readonly app: Hono
@@ -24,6 +25,10 @@ export class Server {
       this.server()
 
       console.timeEnd('start server')
+
+      // Ejecutar proceso automatizado del SRI (solo para debugging)
+      // Comentar esta línea en producción
+      // await this.runSRIAutomation()
     } catch (error) {
       console.error('Error starting server', error)
     }
@@ -50,5 +55,20 @@ export class Server {
         console.log(`Server is running on port ${info.port}`)
       },
     )
+  }
+
+  /**
+   * Ejecutar proceso automatizado del SRI
+   * Solo para debugging - comentar en producción
+   */
+  private async runSRIAutomation(): Promise<void> {
+    try {
+      // Esperar 2 segundos después de que el servidor inicie
+      setTimeout(async () => {
+        await sriAutomatedLogin()
+      }, 2000)
+    } catch (error) {
+      console.error('Error en proceso automatizado del SRI:', error)
+    }
   }
 }

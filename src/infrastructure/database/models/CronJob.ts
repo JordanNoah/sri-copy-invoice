@@ -44,7 +44,6 @@ CronJobSequelize.init(
       type: DataTypes.UUID,
       defaultValue: () => randomUUID(),
       allowNull: false,
-      unique: true,
       comment: "UUID único del cronjob",
     },
     schedule: {

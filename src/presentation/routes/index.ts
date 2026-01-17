@@ -1,9 +1,11 @@
 import {Hono} from "hono";
 import sequelize from "@/infrastructure/database/sequelize";
+import { V1Routes } from "./v1/routes";
 
 export default class AppRoutes {
     public get routes(): Hono {
         const routes = new Hono();
+        
         routes.get("/", async (c) => {
             let dbStatus = false;
             let responseTime = null;
@@ -20,7 +22,7 @@ export default class AppRoutes {
             }
             return c.json({
                 info: {
-                    Title: 'CRM Company Back',
+                    Title: 'SRI - serverless cronjob manager',
                     Version: '1.0.0',
                     Author: 'Jordan Ubilla Mendoza',
                 },
@@ -31,6 +33,10 @@ export default class AppRoutes {
                 }
             });
         });
+
+        // Rutas V1
+        const v1Routes = new V1Routes();
+        routes.route("/api/v1", v1Routes.routes);
         
         return routes;
     }

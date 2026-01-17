@@ -1,4 +1,4 @@
-import { CronJobDatasource } from '@/domain/datasource/CronJob';
+import { CronJobDatasource } from '@/domain/datasource/CronJob.datasource';
 import { CronJobEntity } from '@/domain/entity/CronJob';
 import { CronJobDto, CronJobStatisticsDto } from '@/domain/dto/CronJob';
 import { CronJobSequelize } from '@/infrastructure/database/models/CronJob';
