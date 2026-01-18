@@ -16,7 +16,36 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const path = require('path');
 const fs = require('fs').promises;
 
+// 🔥 CRÍTICO: Agregar Stealth Plugin
 puppeteer.use(StealthPlugin());
+
+// 🔥 Script de anti-detección ultra fuerte
+const ANTI_WEBDRIVER_SCRIPT = `
+(function() {
+  // Eliminar navigator.webdriver en TODOS los niveles
+  Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', {
+    get: () => undefined,
+    set: () => undefined,
+    configurable: false,
+    enumerable: false,
+  });
+  
+  try {
+    delete navigator.webdriver;
+  } catch (e) {}
+  
+  try {
+    navigator.webdriver = undefined;
+    Object.defineProperty(navigator, 'webdriver', {
+      get: () => undefined,
+      set: () => undefined,
+      writable: false,
+      configurable: false,
+      enumerable: false,
+    });
+  } catch (e) {}
+})();
+`;
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -76,6 +105,9 @@ async function main() {
     log(COLORS.blue, '\n✓ CHECK 3: Evaluando propiedades de navegador');
     
     page = await browser.newPage();
+    
+    // 🔥 CRÍTICO: Inyectar anti-detección ANTES de cualquier navegación
+    await page.evaluateOnNewDocument(ANTI_WEBDRIVER_SCRIPT);
     
     // Ir a una página de prueba
     await page.goto('about:blank');

@@ -715,38 +715,37 @@ class SRIDownloader {
 
     this.page = await this.browser.newPage();
 
-    // ==================== MÁSCARA ANTI-DETECCIÓN EN LA PÁGINA ====================
-    // Ejecutar ANTES de cualquier navegación
+    // ==================== MÁSCARA ANTI-DETECCIÓN ULTRA FUERTE ====================
+    // Inyectar ANTES de cualquier navegación - 3 capas de protección
+
+    // CAPA 1: evaluateOnNewDocument (más temprano posible)
     await this.page.evaluateOnNewDocument(() => {
-      // ==================== TÉCNICA 1: ELIMINAR navigator.webdriver COMPLETAMENTE ====================
-      // No solo ocultarlo, eliminarlo del descriptor
+      // 🔥 CRÍTICO: Eliminar navigator.webdriver COMPLETAMENTE
+      Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', {
+        get: () => undefined,
+        set: () => undefined,
+        configurable: false,
+        enumerable: false,
+      });
+      
+      // Método adicional: Direct deletion
       try {
         delete navigator.webdriver;
       } catch (e) {}
       
-      // ==================== TÉCNICA 2: REDEFINIR CON DESCRIPTOR SEGURO ====================
-      // Usar descriptor con configurable: false para que no sea modificable
+      // Método triple: Override en navigator
       try {
+        navigator.webdriver = undefined;
         Object.defineProperty(navigator, 'webdriver', {
           get: () => undefined,
           set: () => undefined,
-          configurable: false,  // No puede ser modificado
-          enumerable: false,    // No aparece en enumeraciones
-        });
-      } catch (e) {}
-      
-      // ==================== TÉCNICA 3: PROTEGER EN WINDOW ====================
-      // Algunos scripts buscan en window.navigator.webdriver
-      try {
-        Object.defineProperty(window.navigator, 'webdriver', {
-          get: () => undefined,
-          set: () => undefined,
+          writable: false,
           configurable: false,
           enumerable: false,
         });
       } catch (e) {}
       
-      // ==================== TÉCNICA 4: OCULTAR "chromium" DEL USER AGENT ====================
+      // ==================== TÉCNICA 2: OCULTAR "chromium" DEL USER AGENT ====================
       const originalUserAgent = navigator.userAgent;
       const newUA = originalUserAgent
         .replace('HeadlessChrome', 'Chrome')
@@ -825,6 +824,8 @@ class SRIDownloader {
       };
 
       // ==================== TÉCNICA 6: PLUGINS REALISTAS ====================
+      // 🔥 CRÍTICO: Headless = 0 plugins. Real Chrome = 5+ plugins
+      // Esto es FÁCIL de detectar, así que hagamos que parezca real
       const pluginArray = [
         {
           name: 'Chrome PDF Plugin',
@@ -850,12 +851,41 @@ class SRIDownloader {
           filename: 'pepflashplayer.dll',
           version: '32.0.0.403',
         },
+        {
+          name: 'Chrome Remote Desktop Viewer',
+          description: '',
+          filename: 'internal-remoting-viewer',
+          version: '1.0',
+        },
+        {
+          name: 'Chrome Media Router Extension',
+          description: '',
+          filename: 'media_router_extension',
+          version: '1.0',
+        },
       ];
       
       try {
         Object.defineProperty(navigator, 'plugins', {
           get: () => pluginArray,
           configurable: false,
+          enumerable: false,
+        });
+      } catch (e) {}
+
+      // Adicional: mimeTypes también necesita plugins
+      try {
+        Object.defineProperty(navigator, 'mimeTypes', {
+          get: () => [
+            {
+              description: 'Portable Document Format',
+              enabledPlugin: pluginArray[0],
+              suffixes: 'pdf',
+              type: 'application/pdf',
+            },
+          ],
+          configurable: false,
+          enumerable: false,
         });
       } catch (e) {}
 
