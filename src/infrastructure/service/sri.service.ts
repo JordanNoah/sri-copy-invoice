@@ -93,8 +93,10 @@ export class SRIService {
         waitUntil: "networkidle2",
       });
 
-      // Esperar a que toda la red esté inactiva (networkidle0)
-      await this.page.waitForNavigation({ waitUntil: 'networkidle0' }).catch(() => {});
+      // Esperar a que DOM esté completamente listo
+      await this.page.waitForFunction(() => {
+        return document.readyState === 'complete';
+      }, { timeout: 10000 }).catch(() => {});
 
       console.log("Esperando formulario de login...");
       
@@ -158,6 +160,10 @@ export class SRIService {
       
       // Hacer clic en "Comprobantes electrónicos recibidos"
       console.log("Haciendo clic en Comprobantes electrónicos recibidos...");
+      
+      // Preparar listener para la navegación ANTES de hacer click
+      const navigationPromise = this.page.waitForNavigation({ waitUntil: 'networkidle2' }).catch(() => {});
+      
       await this.page.evaluate(() => {
         const links = Array.from(document.querySelectorAll('a.ui-menuitem-link'));
         const comprobantesLink = links.find(link => 
@@ -167,6 +173,16 @@ export class SRIService {
           (comprobantesLink as HTMLElement).click();
         }
       });
+      
+      // Esperar a que se navegue
+      await navigationPromise;
+      
+      // Esperar a que DOM esté completamente listo
+      await this.page.waitForFunction(() => {
+        return document.readyState === 'complete';
+      }, { timeout: 10000 }).catch(() => {});
+      
+      await this.delay(2000); // Esperar carga final
       
       return true;
     } catch (error) {
