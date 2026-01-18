@@ -48,6 +48,17 @@ export class SRIService {
       this.page = await this.browser.newPage();
       await this.page.setViewport({ width: 1366, height: 768 });
 
+      // Configurar User-Agent realista (como navegador real)
+      await this.page.setUserAgent(
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      );
+
+      // Agregar headers adicionales para parecer más real
+      await this.page.setExtraHTTPHeaders({
+        'Accept-Language': 'es-EC,es;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      });
+
       // Configurar timeout por defecto
       this.page.setDefaultTimeout(60000); // 60 segundos
     }
@@ -82,6 +93,9 @@ export class SRIService {
         waitUntil: "networkidle2",
       });
 
+      // Esperar a que toda la red esté inactiva (networkidle0)
+      await this.page.waitForNavigation({ waitUntil: 'networkidle0' }).catch(() => {});
+
       console.log("Esperando formulario de login...");
       
       // Hacer clic en el botón "Iniciar sesión"
@@ -90,6 +104,11 @@ export class SRIService {
       
       // Esperar a que se cargue la página de login
       await this.page.waitForNavigation({ waitUntil: "networkidle2" });
+
+      // Esperar a que toda la red esté completamente inactiva
+      await this.page.waitForFunction(() => {
+        return document.readyState === 'complete';
+      }, { timeout: 10000 }).catch(() => {});
 
       // Ingresar usuario
       await this.page.type('input[name="usuario"]', username, { delay: 100 });
@@ -101,13 +120,26 @@ export class SRIService {
       console.log("Haciendo clic en el botón de ingresar...");
       await this.page.click('#kc-login');
 
-      await this.delay(5000); // Esperar a que cargue la página
+      // Esperar con networkidle + confirmación de DOM
+      try {
+        await this.page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 15000 });
+      } catch (e) {
+        console.log("⚠️ Timeout en navegación (esperado en algunos casos)");
+      }
+
+      await this.delay(3000); // Esperar confirmación de página cargada
       
       // Hacer clic en el botón de expandir menú
       console.log("Haciendo clic en el botón de expandir menú...");
       await this.page.click('#sri-menu');
       
-      await this.delay(1000); // Esperar a que se expanda el menú
+      // Esperar a que el menú esté visible
+      await this.page.waitForFunction(() => {
+        const menu = document.getElementById('sri-menu');
+        return menu && menu.offsetHeight > 0;
+      }, { timeout: 5000 }).catch(() => {});
+      
+      await this.delay(800); // Esperar a que se expanda el menú
       
       // Hacer clic en el menú de Facturación Electrónica
       console.log("Haciendo clic en el menú de Facturación Electrónica...");
@@ -178,7 +210,14 @@ export class SRIService {
       console.log("Haciendo clic en el botón Consultar...");
       await this.clickWithCaptchaRetry('#frmPrincipal\\:btnBuscar');
 
-      await this.delay(200000);
+      // Esperar con networkidle0 (todas las conexiones cerradas)
+      console.log("⏳ Esperando a que se carguen resultados...");
+      await this.page.waitForFunction(() => {
+        return document.readyState === 'complete';
+      }, { timeout: 20000 }).catch(() => {});
+
+      // Esperar a que se estabilice la red
+      await this.delay(this.randomDelay(2000, 3000));
 
       // Esperar a que cargue la tabla de resultados
       console.log("Esperando que se cargue la tabla de resultados...");
@@ -358,6 +397,7 @@ export class SRIService {
 
   /**
    * Descargar archivo como buffer
+   * Usa networkidle para esperar a que se complete la descarga
    */
   private async downloadFile(url: string): Promise<Buffer> {
     if (!this.page) {
@@ -365,15 +405,40 @@ export class SRIService {
     }
 
     try {
-      const response = await this.page.goto(url, {
-        waitUntil: 'networkidle0',
-      });
+      // Interceptar la respuesta para obtener el buffer
+      let fileBuffer: Buffer | null = null;
+      
+      const responseHandler = (response: any) => {
+        if (response.url() === url) {
+          response.buffer().then((buffer: Buffer) => {
+            fileBuffer = buffer;
+          });
+        }
+      };
 
-      if (!response) {
-        throw new Error('No se pudo obtener respuesta del servidor');
+      this.page.on('response', responseHandler);
+
+      try {
+        await this.page.goto(url, {
+          waitUntil: 'networkidle0',
+          timeout: 30000,
+        });
+      } finally {
+        this.page.off('response', responseHandler);
       }
 
-      return await response.buffer();
+      // Si no se interceptó, intentar obtener el body
+      if (!fileBuffer) {
+        const response = await this.page.goto(url, {
+          waitUntil: 'networkidle0',
+        });
+        if (!response) {
+          throw new Error('No se pudo obtener respuesta del servidor');
+        }
+        fileBuffer = await response.buffer();
+      }
+
+      return fileBuffer || Buffer.alloc(0);
     } catch (error) {
       throw new Error(`Error descargando archivo: ${error}`);
     }
@@ -449,6 +514,12 @@ export class SRIService {
       const attemptNumber = retries + 1;
       console.log(`🔄 Intento ${attemptNumber} de ${maxRetries}...`);
       
+      // Validar que el captcha esté visible antes de hacer clic
+      if (attemptNumber === 1) {
+        console.log("👁️ Esperando a que captcha esté visible...");
+        await this.waitForCaptchaVisible();
+      }
+      
       // Comportamiento humano: scrolling suave antes del clic
       await this.simulateHumanScrolling();
       
@@ -468,7 +539,14 @@ export class SRIService {
       const baseWait = 3000 + attemptNumber * 500; // Aumenta conforme avanzan intentos
       const processWait = this.randomDelay(baseWait, baseWait + 2000);
       console.log(`⏳ Esperando ${processWait}ms para procesamiento...`);
+      
+      // Esperar con verificación de red
       await this.delay(processWait);
+      
+      // Verificar que la página esté estable
+      await this.page?.waitForFunction(() => {
+        return document.readyState === 'complete';
+      }, { timeout: 5000 }).catch(() => {});
       
       // Revisar si aparece el mensaje de captcha incorrecto
       const captchaErrorElement = await this.page?.evaluate(() => {
@@ -512,6 +590,9 @@ export class SRIService {
         
         // Esperar a que se recargue el captcha
         await this.delay(this.randomDelay(1500, 2500));
+        
+        // Validar que el nuevo captcha esté cargado
+        await this.waitForCaptchaVisible();
         
         // Comportamiento humano después de error: frustración simulada
         if (attemptNumber % 3 === 0) {
@@ -617,6 +698,45 @@ export class SRIService {
       const y = this.randomDelay(200, 600);
       await this.page.mouse.move(x, y);
       await this.delay(this.randomDelay(100, 300));
+    }
+  }
+
+  /**
+   * Validar que el captcha está cargado en la página
+   */
+  private async validateCaptchaLoaded(): Promise<boolean> {
+    if (!this.page) return false;
+
+    try {
+      const iframeVisible = await this.page.evaluate(() => {
+        // Buscar iframe de reCAPTCHA o similar
+        const recaptchaIframe = document.querySelector('iframe[src*="recaptcha"]');
+        const genericCaptcha = document.querySelector('[data-captcha], .captcha, #captcha, .g-recaptcha');
+        return !!(recaptchaIframe || genericCaptcha);
+      });
+
+      return iframeVisible;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Esperar a que el captcha esté visible y listo
+   */
+  private async waitForCaptchaVisible(): Promise<void> {
+    if (!this.page) return;
+
+    try {
+      await this.page.waitForFunction(() => {
+        const captcha = document.querySelector('[data-captcha], .captcha, #captcha, .g-recaptcha, iframe[src*="recaptcha"]');
+        return captcha && (captcha as HTMLElement).offsetHeight > 0;
+      }, { timeout: 10000 });
+
+      // Esperar a que esté completamente listo
+      await this.delay(this.randomDelay(500, 1000));
+    } catch {
+      console.log("⚠️ Captcha no visible (puede estar en método alternativo)");
     }
   }
 }
