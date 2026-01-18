@@ -122,110 +122,85 @@ export class SRIService {
       console.log("Haciendo clic en el botón de ingresar...");
       await this.page.click('#kc-login');
 
-      // Esperar con networkidle + confirmación de DOM
+      // Esperar simple: networkidle2 es suficiente, networkidle0 es muy restrictivo
       try {
-        await this.page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 15000 });
+        await this.page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
       } catch (e) {
-        console.log("⚠️ Timeout en navegación (esperado en algunos casos)");
+        console.log("⚠️ Timeout en navegación, continuando...");
       }
 
-      await this.delay(3000); // Esperar confirmación de página cargada
-
-      // Esperar a que DOM esté completamente listo después del login
-      console.log("🔍 Esperando a que página esté completamente cargada...");
-      await this.page.waitForFunction(() => {
-        return document.readyState === 'complete';
-      }, { timeout: 15000 }).catch(() => {});
+      await this.delay(2000); // Esperar simple sin validaciones complejas
 
       // Esperar a que el elemento #sri-menu exista ANTES de hacer clic
       console.log("👁️ Buscando elemento #sri-menu...");
       try {
-        await this.page.waitForSelector('#sri-menu', { timeout: 10000 });
+        await this.page.waitForSelector('#sri-menu', { timeout: 5000 });
         console.log("✅ Elemento #sri-menu encontrado");
       } catch (e) {
         console.error("❌ #sri-menu no encontrado. Tomando screenshot para debug...");
         await this.screenshot(`debug-login-${Date.now()}.png`);
-        throw new Error("Elemento #sri-menu no encontrado después del login. Verifica el formulario en el screenshot.");
+        throw new Error("Elemento #sri-menu no encontrado después del login.");
       }
 
       // Hacer clic en el botón de expandir menú
       console.log("Haciendo clic en el botón de expandir menú...");
       await this.page.click('#sri-menu');
       
-      // Esperar a que el menú esté visible
-      await this.page.waitForFunction(() => {
-        const menu = document.getElementById('sri-menu');
-        return menu && (menu as HTMLElement).offsetHeight > 0;
-      }, { timeout: 5000 }).catch(() => {});
-      
-      await this.delay(800); // Esperar a que se expanda el menú
+      await this.delay(500); // Espera simple
       
       // Hacer clic en el menú de Facturación Electrónica
       console.log("Haciendo clic en el menú de Facturación Electrónica...");
       
-      // Esperar a que el link de Facturación esté disponible
-      try {
-        await this.page.waitForFunction(() => {
-          const links = Array.from(document.querySelectorAll('a.ui-panelmenu-header-link'));
-          return links.some(link => link.textContent.includes('FACTURACIÓN ELECTRÓNICA'));
-        }, { timeout: 10000 });
-        console.log("✅ Link de Facturación Electrónica encontrado");
-      } catch (e) {
-        console.error("❌ Link de Facturación Electrónica no encontrado");
-        await this.screenshot(`debug-facturacion-${Date.now()}.png`);
-        throw new Error("Link de Facturación Electrónica no encontrado. Ver screenshot.");
-      }
-
-      // Usar evaluate para encontrar y hacer clic en el elemento por texto
-      await this.page.evaluate(() => {
+      // Espera simple para que el menú se expanda
+      await this.delay(800);
+      
+      // Buscar y hacer clic
+      const facturacionClicked = await this.page.evaluate(() => {
         const links = Array.from(document.querySelectorAll('a.ui-panelmenu-header-link'));
         const facturacionLink = links.find(link => 
           link.textContent.includes('FACTURACIÓN ELECTRÓNICA')
         );
         if (facturacionLink) {
           (facturacionLink as HTMLElement).click();
+          return true;
         }
+        return false;
       });
+
+      if (!facturacionClicked) {
+        console.warn("⚠️ Link de Facturación no encontrado, tomando screenshot...");
+        await this.screenshot(`debug-facturacion-${Date.now()}.png`);
+      }
       
-      await this.delay(1500); // Esperar a que se expanda el menú
+      await this.delay(1000); // Espera simple
       
       // Hacer clic en "Comprobantes electrónicos recibidos"
       console.log("Haciendo clic en Comprobantes electrónicos recibidos...");
       
-      // Esperar a que el link esté disponible
-      try {
-        await this.page.waitForFunction(() => {
-          const links = Array.from(document.querySelectorAll('a.ui-menuitem-link'));
-          return links.some(link => link.textContent.includes('Comprobantes electrónicos recibidos'));
-        }, { timeout: 10000 });
-        console.log("✅ Link de Comprobantes encontrado");
-      } catch (e) {
-        console.error("❌ Link de Comprobantes electrónicos recibidos no encontrado");
-        await this.screenshot(`debug-comprobantes-${Date.now()}.png`);
-        throw new Error("Link de Comprobantes electrónicos recibidos no encontrado. Ver screenshot.");
-      }
-      // Preparar listener para la navegación ANTES de hacer click
-      const navigationPromise = this.page.waitForNavigation({ waitUntil: 'networkidle2' }).catch(() => {});
+      // Preparar listener para navegación ANTES del click
+      const navigationPromise = this.page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {});
       
-      await this.page.evaluate(() => {
+      const comprobantesClicked = await this.page.evaluate(() => {
         const links = Array.from(document.querySelectorAll('a.ui-menuitem-link'));
         const comprobantesLink = links.find(link => 
           link.textContent.includes('Comprobantes electrónicos recibidos')
         );
         if (comprobantesLink) {
           (comprobantesLink as HTMLElement).click();
+          return true;
         }
+        return false;
       });
-      
+
+      if (!comprobantesClicked) {
+        console.error("❌ Link de Comprobantes no encontrado");
+        await this.screenshot(`debug-comprobantes-${Date.now()}.png`);
+        throw new Error("Link de Comprobantes electrónicos recibidos no encontrado.");
+      }
       // Esperar a que se navegue
       await navigationPromise;
       
-      // Esperar a que DOM esté completamente listo
-      await this.page.waitForFunction(() => {
-        return document.readyState === 'complete';
-      }, { timeout: 10000 }).catch(() => {});
-      
-      await this.delay(2000); // Esperar carga final
+      await this.delay(2000); // Espera final
       
       return true;
     } catch (error) {
