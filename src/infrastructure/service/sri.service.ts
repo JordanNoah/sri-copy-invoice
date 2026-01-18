@@ -130,7 +130,24 @@ export class SRIService {
       }
 
       await this.delay(3000); // Esperar confirmación de página cargada
-      
+
+      // Esperar a que DOM esté completamente listo después del login
+      console.log("🔍 Esperando a que página esté completamente cargada...");
+      await this.page.waitForFunction(() => {
+        return document.readyState === 'complete';
+      }, { timeout: 15000 }).catch(() => {});
+
+      // Esperar a que el elemento #sri-menu exista ANTES de hacer clic
+      console.log("👁️ Buscando elemento #sri-menu...");
+      try {
+        await this.page.waitForSelector('#sri-menu', { timeout: 10000 });
+        console.log("✅ Elemento #sri-menu encontrado");
+      } catch (e) {
+        console.error("❌ #sri-menu no encontrado. Tomando screenshot para debug...");
+        await this.screenshot(`debug-login-${Date.now()}.png`);
+        throw new Error("Elemento #sri-menu no encontrado después del login. Verifica el formulario en el screenshot.");
+      }
+
       // Hacer clic en el botón de expandir menú
       console.log("Haciendo clic en el botón de expandir menú...");
       await this.page.click('#sri-menu');
@@ -138,13 +155,27 @@ export class SRIService {
       // Esperar a que el menú esté visible
       await this.page.waitForFunction(() => {
         const menu = document.getElementById('sri-menu');
-        return menu && menu.offsetHeight > 0;
+        return menu && (menu as HTMLElement).offsetHeight > 0;
       }, { timeout: 5000 }).catch(() => {});
       
       await this.delay(800); // Esperar a que se expanda el menú
       
       // Hacer clic en el menú de Facturación Electrónica
       console.log("Haciendo clic en el menú de Facturación Electrónica...");
+      
+      // Esperar a que el link de Facturación esté disponible
+      try {
+        await this.page.waitForFunction(() => {
+          const links = Array.from(document.querySelectorAll('a.ui-panelmenu-header-link'));
+          return links.some(link => link.textContent.includes('FACTURACIÓN ELECTRÓNICA'));
+        }, { timeout: 10000 });
+        console.log("✅ Link de Facturación Electrónica encontrado");
+      } catch (e) {
+        console.error("❌ Link de Facturación Electrónica no encontrado");
+        await this.screenshot(`debug-facturacion-${Date.now()}.png`);
+        throw new Error("Link de Facturación Electrónica no encontrado. Ver screenshot.");
+      }
+
       // Usar evaluate para encontrar y hacer clic en el elemento por texto
       await this.page.evaluate(() => {
         const links = Array.from(document.querySelectorAll('a.ui-panelmenu-header-link'));
@@ -161,6 +192,18 @@ export class SRIService {
       // Hacer clic en "Comprobantes electrónicos recibidos"
       console.log("Haciendo clic en Comprobantes electrónicos recibidos...");
       
+      // Esperar a que el link esté disponible
+      try {
+        await this.page.waitForFunction(() => {
+          const links = Array.from(document.querySelectorAll('a.ui-menuitem-link'));
+          return links.some(link => link.textContent.includes('Comprobantes electrónicos recibidos'));
+        }, { timeout: 10000 });
+        console.log("✅ Link de Comprobantes encontrado");
+      } catch (e) {
+        console.error("❌ Link de Comprobantes electrónicos recibidos no encontrado");
+        await this.screenshot(`debug-comprobantes-${Date.now()}.png`);
+        throw new Error("Link de Comprobantes electrónicos recibidos no encontrado. Ver screenshot.");
+      }
       // Preparar listener para la navegación ANTES de hacer click
       const navigationPromise = this.page.waitForNavigation({ waitUntil: 'networkidle2' }).catch(() => {});
       
