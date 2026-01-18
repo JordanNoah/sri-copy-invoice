@@ -1,6 +1,11 @@
 import { SRIService } from "@/infrastructure/service/sri.service";
 import { CompanyCredentialsSequelizeDatasource } from "@/infrastructure/datasource/CompanyCredentialDatasource.impl";
 import { CompanyCredentialsRepositoryImpl } from "@/infrastructure/repository/CompanyCredentials.repository.impl";
+import { InvoiceSequelizeDatasource } from "@/infrastructure/datasource/InvoiceSequelizeDatasource.impl";
+import { InvoiceRepositoryImpl } from "@/infrastructure/repository/Invoice.repository.impl";
+import { InvoiceDocumentSequelizeDatasource } from "@/infrastructure/datasource/InvoiceDocumentSequelizeDatasource.impl";
+import { InvoiceDocumentRepositoryImpl } from "@/infrastructure/repository/InvoiceDocument.repository.impl";
+import { FileService } from "@/infrastructure/service/file.service";
 
 /**
  * Función automatizada para hacer login en el SRI y descargar facturas
@@ -11,7 +16,14 @@ export async function sriAutomatedLogin() {
   console.log("🤖 Iniciando proceso automatizado del SRI");
   console.log("========================================\n");
 
-  const sriService = new SRIService();
+  // Inicializar servicios y repositorios
+  const invoiceDatasource = new InvoiceSequelizeDatasource();
+  const invoiceRepository = new InvoiceRepositoryImpl(invoiceDatasource);
+  const invoiceDocumentDatasource = new InvoiceDocumentSequelizeDatasource();
+  const invoiceDocumentRepository = new InvoiceDocumentRepositoryImpl(invoiceDocumentDatasource);
+  const fileService = new FileService();
+
+  const sriService = new SRIService(fileService, invoiceRepository, invoiceDocumentRepository);
   const datasource = new CompanyCredentialsSequelizeDatasource();
   const repository = new CompanyCredentialsRepositoryImpl(datasource);
 
@@ -43,7 +55,9 @@ export async function sriAutomatedLogin() {
       console.log(`🔐 Iniciando sesión en el SRI...`);
       const loginSuccess = await sriService.login(
         decryptedCreds.username,
-        decryptedCreds.password
+        decryptedCreds.password,
+        credential.companyUuid,
+        credential.ruc
       );
 
       if (!loginSuccess) {
@@ -66,8 +80,8 @@ export async function sriAutomatedLogin() {
       console.log(`📥 Descargando facturas desde ${fechaInicio} hasta ${fechaFin}...`);
 
       try {
-        const downloadPath = await sriService.downloadInvoices(fechaInicio);
-        console.log(`✅ Facturas descargadas en: ${downloadPath}`);
+        const downloadedInvoices = await sriService.downloadInvoices(fechaInicio);
+        console.log(`✅ Facturas descargadas: ${downloadedInvoices.length}`);
       } catch (downloadError) {
         console.error(`❌ Error al descargar facturas:`, downloadError);
       }

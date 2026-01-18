@@ -28,7 +28,7 @@ export class Server {
 
       // Ejecutar proceso automatizado del SRI (solo para debugging)
       // Comentar esta línea en producción
-      // await this.runSRIAutomation()
+       await this.runSRIAutomation()
     } catch (error) {
       console.error('Error starting server', error)
     }

@@ -143,4 +143,13 @@ export class FileService {
             throw new Error('Failed to get file size');
         }
     }
+
+    /**
+     * Get public URL for a file in S3
+     * @param s3Key - S3 object key
+     * @returns Public S3 URL
+     */
+    getFileUrl(s3Key: string): string {
+        return `https://${this.bucketName}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
+    }
 }

@@ -7,6 +7,7 @@ import {
   GetDecryptedCredentialsByRucUseCase,
   UpdateCompanyPasswordUseCase,
   DeleteCompanyCredentialsUseCase,
+  DownloadInvoicesUseCase,
 } from "@/domain/use-cases/company-credentials";
 
 export class CompanyController {
@@ -16,7 +17,8 @@ export class CompanyController {
     private readonly getCompanyCredentialsByRucUseCase: GetCompanyCredentialsByRucUseCase,
     private readonly getDecryptedCredentialsByRucUseCase: GetDecryptedCredentialsByRucUseCase,
     private readonly updateCompanyPasswordUseCase: UpdateCompanyPasswordUseCase,
-    private readonly deleteCompanyCredentialsUseCase: DeleteCompanyCredentialsUseCase
+    private readonly deleteCompanyCredentialsUseCase: DeleteCompanyCredentialsUseCase,
+    private readonly downloadInvoicesUseCase: DownloadInvoicesUseCase
   ) {}
 
   /**
@@ -226,6 +228,57 @@ export class CompanyController {
       return c.json(
         {
           error: "Error al eliminar credenciales",
+          details: error instanceof Error ? error.message : "Error desconocido",
+        },
+        500
+      );
+    }
+  };
+
+  /**
+   * POST /api/v1/company/:ruc/download-invoices
+   * Descargar facturas del SRI y guardarlas en BD y S3
+   */
+  downloadInvoices = async (c: Context) => {
+    try {
+      const ruc = c.req.param("ruc");
+      const body = await c.req.json<{ fechaInicio?: string }>().catch(() => ({})) as { fechaInicio?: string };
+
+      if (!ruc) {
+        return c.json({ error: "RUC es requerido" }, 400);
+      }
+
+      if (ruc.length !== 13 || !/^\d+$/.test(ruc)) {
+        return c.json(
+          {
+            error: "El RUC debe tener exactamente 13 dígitos numéricos",
+          },
+          400
+        );
+      }
+
+      console.log(
+        `Iniciando descarga de facturas para RUC: ${ruc}, fechaInicio: ${body.fechaInicio}`
+      );
+
+      const downloadedInvoices = await this.downloadInvoicesUseCase.execute(
+        ruc,
+        body.fechaInicio
+      );
+
+      return c.json(
+        {
+          message: "Facturas descargadas exitosamente",
+          data: downloadedInvoices,
+          count: downloadedInvoices.length,
+        },
+        200
+      );
+    } catch (error) {
+      console.error("Error downloading invoices:", error);
+      return c.json(
+        {
+          error: "Error al descargar facturas",
           details: error instanceof Error ? error.message : "Error desconocido",
         },
         500

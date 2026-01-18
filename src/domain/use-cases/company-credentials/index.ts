@@ -4,3 +4,4 @@ export { GetCompanyCredentialsByRucUseCase } from "./get-company-credentials-by-
 export { GetDecryptedCredentialsByRucUseCase } from "./get-decrypted-credentials-by-ruc.use-case";
 export { UpdateCompanyPasswordUseCase } from "./update-company-password.use-case";
 export { DeleteCompanyCredentialsUseCase } from "./delete-company-credentials.use-case";
+export { DownloadInvoicesUseCase } from "./download-invoices.use-case";

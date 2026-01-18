@@ -1,2 +1,23 @@
-node_modules
+# Dependencias
+node_modules/
+
+# Variables de entorno (NUNCA compartir)
 .env
+.env.local
+.env.*.local
+
+# Archivos descargados
+descargas/
+screenshots/
+
+# Archivos XML y PDF
+*.xml
+*.pdf
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
