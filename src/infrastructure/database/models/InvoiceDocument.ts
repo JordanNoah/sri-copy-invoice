@@ -46,7 +46,7 @@ InvoiceDocumentSequelize.init(
       allowNull: false,
     },
     invoiceUuid: {
-      type: DataTypes.UUID,
+      type: DataTypes.TEXT("long"),
       allowNull: false,
       comment: "FK a la factura padre",
     },
@@ -58,7 +58,6 @@ InvoiceDocumentSequelize.init(
     s3Key: {
       type: DataTypes.STRING(512),
       allowNull: false,
-      unique: true,
       comment: "Clave única en S3 (files/RUC/YEAR/FILENAME)",
     },
     s3Url: {
@@ -88,10 +87,6 @@ InvoiceDocumentSequelize.init(
     tableName: "invoice_documents",
     timestamps: true,
     indexes: [
-      {
-        fields: ["invoiceUuid"],
-        name: "idx_invoice_documents_invoice_uuid",
-      },
       {
         fields: ["s3Key"],
         unique: true,

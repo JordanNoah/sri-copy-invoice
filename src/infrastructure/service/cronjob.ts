@@ -26,13 +26,13 @@ class CronJobService {
     try {
       // Validar que el jobUuid no exista
       if (this.jobs.has(definition.jobUuid)) {
-        console.warn(`⚠️ El cronjob con UUID '${definition.jobUuid}' ya existe`);
+        console.warn(`El cronjob con UUID '${definition.jobUuid}' ya existe`);
         return false;
       }
 
       // Validar que la expresión cron sea válida
       if (!cron.validate(definition.schedule)) {
-        console.error(`❌ Expresión cron inválida: ${definition.schedule}`);
+        console.error(`Expresión cron inválida: ${definition.schedule}`);
         return false;
       }
 
@@ -46,17 +46,17 @@ class CronJobService {
       // Crear el cronjob
       const scheduledTask = cron.schedule(definition.schedule, async () => {
         try {
-          console.log(`▶️ Ejecutando cronjob: ${definition.jobUuid} - ${definition.description || ''}`);
+          console.log(`Ejecutando cronjob: ${definition.jobUuid} - ${definition.description || ''}`);
           await Promise.resolve(definition.task());
-          console.log(`✅ Cronjob completado: ${definition.jobUuid}`);
+          console.log(`Cronjob completado: ${definition.jobUuid}`);
         } catch (error) {
-          console.error(`❌ Error en cronjob '${definition.jobUuid}':`, error);
+          console.error(`Error en cronjob '${definition.jobUuid}':`, error);
         }
       });
 
       // Registrar el job
       this.jobs.set(definition.jobUuid, scheduledTask);
-      console.log(`✔️ Cronjob registrado: ${definition.jobUuid} (${definition.schedule})`);
+      console.log(`Cronjob registrado: ${definition.jobUuid} (${definition.schedule})`);
       return true;
     } catch (error) {
       console.error(`Error al crear cronjob '${definition.jobUuid}':`, error);
@@ -97,11 +97,11 @@ class CronJobService {
     try {
       const job = this.jobs.get(jobUuid);
       if (!job) {
-        console.warn(`⚠️ No se encontró el cronjob con UUID: ${jobUuid}`);
+        console.warn(`No se encontró el cronjob con UUID: ${jobUuid}`);
         return false;
       }
 
-      console.log(`▶️ Ejecutando manualmente cronjob: ${jobUuid}`);
+      console.log(`Ejecutando manualmente cronjob: ${jobUuid}`);
       // Ejecutar la tarea (node-cron no tiene un método directo, 
       // pero podemos acceder a la función interna)
       return true;
@@ -120,12 +120,12 @@ class CronJobService {
     try {
       const job = this.jobs.get(jobUuid);
       if (!job) {
-        console.warn(`⚠️ No se encontró el cronjob con UUID: ${jobUuid}`);
+        console.warn(`No se encontró el cronjob con UUID: ${jobUuid}`);
         return false;
       }
 
       job.stop();
-      console.log(`⏹️ Cronjob detenido: ${jobUuid}`);
+      console.log(`Cronjob detenido: ${jobUuid}`);
       return true;
     } catch (error) {
       console.error(`Error al detener cronjob '${jobUuid}':`, error);
@@ -142,12 +142,12 @@ class CronJobService {
     try {
       const job = this.jobs.get(jobUuid);
       if (!job) {
-        console.warn(`⚠️ No se encontró el cronjob con UUID: ${jobUuid}`);
+        console.warn(`No se encontró el cronjob con UUID: ${jobUuid}`);
         return false;
       }
 
       job.start();
-      console.log(`▶️ Cronjob reanudado: ${jobUuid}`);
+      console.log(`Cronjob reanudado: ${jobUuid}`);
       return true;
     } catch (error) {
       console.error(`Error al reanudar cronjob '${jobUuid}':`, error);
@@ -164,13 +164,13 @@ class CronJobService {
     try {
       const job = this.jobs.get(jobUuid);
       if (!job) {
-        console.warn(`⚠️ No se encontró el cronjob con UUID: ${jobUuid}`);
+        console.warn(`No se encontró el cronjob con UUID: ${jobUuid}`);
         return false;
       }
 
       job.stop();
       this.jobs.delete(jobUuid);
-      console.log(`🗑️ Cronjob eliminado: ${jobUuid}`);
+      console.log(`Cronjob eliminado: ${jobUuid}`);
       return true;
     } catch (error) {
       console.error(`Error al eliminar cronjob '${jobUuid}':`, error);
@@ -215,7 +215,7 @@ class CronJobService {
     try {
       for (const [id, job] of this.jobs.entries()) {
         job.stop();
-        console.log(`⏹️ Cronjob detenido: ${id}`);
+        console.log(`Cronjob detenido: ${id}`);
       }
       console.log('Todos los cronjobs han sido detenidos');
     } catch (error) {
@@ -230,7 +230,7 @@ class CronJobService {
     try {
       for (const [id, job] of this.jobs.entries()) {
         job.start();
-        console.log(`▶️ Cronjob reanudado: ${id}`);
+        console.log(`Cronjob reanudado: ${id}`);
       }
       console.log('Todos los cronjobs han sido reanudados');
     } catch (error) {
@@ -247,7 +247,7 @@ class CronJobService {
         job.stop();
       }
       this.jobs.clear();
-      console.log('✔️ Todos los cronjobs han sido eliminados');
+      console.log('Todos los cronjobs han sido eliminados');
     } catch (error) {
       console.error('Error al limpiar cronjobs:', error);
     }

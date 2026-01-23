@@ -5,7 +5,7 @@ import env from '@/shared/env';
 export class FileService {
     private s3Client: S3Client;
     private readonly bucketName: string;
-    private readonly filesPrefix = 'files';
+    private readonly filesPrefix = 'sri';
 
     constructor() {
         this.bucketName = env.AWS_S3_BUCKET;
@@ -31,9 +31,7 @@ export class FileService {
         companyRuc: string
     ): Promise<string> {
         try {
-            // Generate S3 key: files/RUC/YEAR/FILENAME
-            const year = new Date().getFullYear();
-            const s3Key = `${this.filesPrefix}/${companyRuc}/${year}/${fileName}`;
+            const s3Key = `${this.filesPrefix}/${companyRuc}/${fileName}`;
 
             // Upload to S3
             const command = new PutObjectCommand({
@@ -50,7 +48,7 @@ export class FileService {
             });
 
             await this.s3Client.send(command);
-            console.log(`✅ Archivo guardado en S3: ${s3Key}`);
+            console.log(`Archivo guardado en S3: ${s3Key}`);
 
             return s3Key;
         } catch (error) {
@@ -71,7 +69,7 @@ export class FileService {
             });
 
             await this.s3Client.send(command);
-            console.log(`✅ Archivo eliminado de S3: ${s3Key}`);
+            console.log(`Archivo eliminado de S3: ${s3Key}`);
         } catch (error) {
             console.error('Error deleting file from S3:', error);
             throw new Error('Failed to delete file from S3');

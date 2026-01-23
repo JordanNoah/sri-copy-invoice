@@ -2,9 +2,9 @@ import { Hono } from "hono";
 import { CompanyController } from "./controller";
 import { CompanyCredentialsSequelizeDatasource } from "@/infrastructure/datasource/CompanyCredentialDatasource.impl";
 import { CompanyCredentialsRepositoryImpl } from "@/infrastructure/repository/CompanyCredentials.repository.impl";
-import { InvoiceSequelizeDatasource } from "@/infrastructure/datasource/InvoiceSequelizeDatasource.impl";
+import { InvoiceDatasourceImpl } from "@/infrastructure/datasource/InvoiceDatasource.impl";
 import { InvoiceRepositoryImpl } from "@/infrastructure/repository/Invoice.repository.impl";
-import { InvoiceDocumentSequelizeDatasource } from "@/infrastructure/datasource/InvoiceDocumentSequelizeDatasource.impl";
+import { InvoiceDocumentSequelizeDatasource } from "@/infrastructure/datasource/InvoiceDocumentDatasource.impl";
 import { InvoiceDocumentRepositoryImpl } from "@/infrastructure/repository/InvoiceDocument.repository.impl";
 import { FileService } from "@/infrastructure/service/file.service";
 import { SRIService } from "@/infrastructure/service/sri.service";
@@ -15,7 +15,6 @@ import {
   GetDecryptedCredentialsByRucUseCase,
   UpdateCompanyPasswordUseCase,
   DeleteCompanyCredentialsUseCase,
-  DownloadInvoicesUseCase,
 } from "@/domain/use-cases/company-credentials";
 
 export class CompanyRoutes {
@@ -27,15 +26,11 @@ export class CompanyRoutes {
     const credentialsRepository = new CompanyCredentialsRepositoryImpl(credentialsDatasource);
 
     // Inicializar dependencias de facturas
-    const invoiceDatasource = new InvoiceSequelizeDatasource();
+    const invoiceDatasource = new InvoiceDatasourceImpl();
     const invoiceRepository = new InvoiceRepositoryImpl(invoiceDatasource);
 
     const invoiceDocumentDatasource = new InvoiceDocumentSequelizeDatasource();
     const invoiceDocumentRepository = new InvoiceDocumentRepositoryImpl(invoiceDocumentDatasource);
-
-    // Inicializar servicios
-    const fileService = new FileService();
-    const sriService = new SRIService(fileService, invoiceRepository, invoiceDocumentRepository);
 
     // Inicializar use cases
     const saveCompanyCredentialsUseCase = new SaveCompanyCredentialsUseCase(credentialsRepository);
@@ -44,11 +39,7 @@ export class CompanyRoutes {
     const getDecryptedCredentialsByRucUseCase = new GetDecryptedCredentialsByRucUseCase(credentialsRepository);
     const updateCompanyPasswordUseCase = new UpdateCompanyPasswordUseCase(credentialsRepository);
     const deleteCompanyCredentialsUseCase = new DeleteCompanyCredentialsUseCase(credentialsRepository);
-    const downloadInvoicesUseCase = new DownloadInvoicesUseCase(
-      sriService,
-      credentialsRepository,
-      invoiceRepository
-    );
+    
 
     // Inicializar controller
     const controller = new CompanyController(
@@ -58,7 +49,6 @@ export class CompanyRoutes {
       getDecryptedCredentialsByRucUseCase,
       updateCompanyPasswordUseCase,
       deleteCompanyCredentialsUseCase,
-      downloadInvoicesUseCase
     );
 
     // Definir rutas de credenciales
@@ -68,9 +58,6 @@ export class CompanyRoutes {
     router.get("/credentials/:ruc/decrypted", controller.getDecryptedCredentials);
     router.patch("/credentials/:ruc/password", controller.updatePassword);
     router.delete("/credentials/:ruc", controller.deleteCredentials);
-
-    // Definir ruta de descarga de facturas
-    router.post("/:ruc/download-invoices", controller.downloadInvoices);
 
     return router;
   }

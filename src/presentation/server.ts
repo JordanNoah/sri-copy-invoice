@@ -4,7 +4,8 @@ import {cors} from "hono/cors"
 import {serve} from "@hono/node-server"
 import { DbSequelize } from '@/infrastructure/database/init'
 import AppRoutes from './routes'
-import { sriAutomatedLogin } from '@/infrastructure/service/sri-automated.service'
+import { cronJobService } from '@/infrastructure/service/cronjob'
+import { SRIAutomationService } from '@/infrastructure/service/sri-automation.service'
 
 export class Server {
   public readonly app: Hono
@@ -23,12 +24,9 @@ export class Server {
       this.cors()
       this.routes()
       this.server()
+      this.setupCronJobs()
 
       console.timeEnd('start server')
-
-      // Ejecutar proceso automatizado del SRI (solo para debugging)
-      // Comentar esta línea en producción
-       await this.runSRIAutomation()
     } catch (error) {
       console.error('Error starting server', error)
     }
@@ -58,17 +56,22 @@ export class Server {
   }
 
   /**
-   * Ejecutar proceso automatizado del SRI
-   * Solo para debugging - comentar en producción
+   * Configurar cronjobs para tareas automatizadas
    */
-  private async runSRIAutomation(): Promise<void> {
-    try {
-      // Esperar 2 segundos después de que el servidor inicie
-      setTimeout(async () => {
-        await sriAutomatedLogin()
-      }, 2000)
-    } catch (error) {
-      console.error('Error en proceso automatizado del SRI:', error)
-    }
+  private setupCronJobs(): void {
+    const sriAutomationService = new SRIAutomationService()
+
+    // Cronjob para descarga automática de facturas del SRI
+    cronJobService.createJob({
+      jobUuid: 'sri-download-invoices',
+      schedule: '0 2 * * *', // Ejecutar todos los días a las 2:00 AM
+      description: 'Descarga automática de facturas del SRI para todas las empresas',
+      runOnInit: false, // Cambiar a true si quieres que se ejecute al iniciar el servidor
+      task: async () => {
+        await sriAutomationService.processAllCompanies()
+      }
+    })
+
+    console.log('Cronjobs configurados correctamente')
   }
 }

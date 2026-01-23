@@ -23,12 +23,11 @@ export class DownloadInvoicesFromSRIUseCase {
     }
 
     try {
-      const downloadPath = await this.sriService.downloadInvoices(fechaInicio, fechaFin);
+      const downloadPath = await this.sriService.downloadInvoices(fechaInicio);
 
       return {
         success: true,
         message: "Facturas descargadas exitosamente",
-        downloadPath,
       };
     } catch (error) {
       console.error("Error en DownloadInvoicesFromSRIUseCase:", error);
