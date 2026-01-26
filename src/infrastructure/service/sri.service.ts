@@ -4,10 +4,8 @@ import path from 'path';
 import axios from 'axios';
 import crypto from 'crypto';
 import { InvoiceDatasourceImpl } from '../datasource/InvoiceDatasource.impl';
-import { InvoiceDocumentSequelizeDatasource } from '../datasource/InvoiceDocumentDatasource.impl';
+import { InvoiceDocumentDatasourceImpl } from '../datasource/InvoiceDocumentDatasource.impl';
 import { FileService } from './file.service';
-import { Page } from 'puppeteer';
-import { A } from 'vitest/dist/chunks/environment.d.cL3nLXbE';
 
 interface SRIDownloadConfig {
   ruc: string;
@@ -53,7 +51,7 @@ export class SRIService {
   private readonly sriUrl = 'https://srienlinea.sri.gob.ec/sri-en-linea/';
   private readonly screenshotsDir: string;
   private readonly invoiceDatasource: InvoiceDatasourceImpl;
-  private readonly invoiceDocumentDatasource: InvoiceDocumentSequelizeDatasource;
+  private readonly invoiceDocumentDatasource: InvoiceDocumentDatasourceImpl;
   private readonly fileService: FileService;
   private user: string;
   private browser: any = null;
@@ -63,7 +61,7 @@ export class SRIService {
     this.user = user;
     this.screenshotsDir = path.join(process.cwd(), 'screenshots');
     this.invoiceDatasource = new InvoiceDatasourceImpl();
-    this.invoiceDocumentDatasource = new InvoiceDocumentSequelizeDatasource();
+    this.invoiceDocumentDatasource = new InvoiceDocumentDatasourceImpl();
     this.fileService = new FileService();
   }
 

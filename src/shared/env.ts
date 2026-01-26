@@ -15,4 +15,13 @@ export default {
     AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID || '',
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY || '',
     AWS_S3_BUCKET: process.env.AWS_S3_BUCKET || '',
+    // Email Configuration
+    EMAIL_SERVICE: process.env.EMAIL_SERVICE || 'smtp',
+    EMAIL_HOST: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    EMAIL_PORT: process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : 587,
+    EMAIL_SECURE: process.env.EMAIL_SECURE === 'true',
+    EMAIL_USER: process.env.EMAIL_USER || '',
+    EMAIL_PASSWORD: process.env.EMAIL_PASSWORD || '',
+    EMAIL_FROM: process.env.EMAIL_FROM || 'SRI Invoice System <noreply@system.com>',
+    EMAIL_ALERTS_TO: process.env.EMAIL_ALERTS_TO ? process.env.EMAIL_ALERTS_TO.split(',').map(e => e.trim()) : [],
 }
